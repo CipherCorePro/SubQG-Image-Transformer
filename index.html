@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SubQG Image Transformer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom scrollbar for webkit browsers for better aesthetics */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+      /* Basic body styling */
+      body {
+        font-family: 'Inter', sans-serif; /* A common Tailwind-esque font */
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.2.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-slate-900 text-slate-100">
+    <div id="root"></div>
+    <script>
+      // In a real application, process.env.API_KEY would be set during the build process
+      // or injected by the server. For client-side only example, we might need to
+      // manage this differently or assume it's globally available if this app were
+      // part of a larger system where it's set. For this self-contained example,
+      // if direct browser use is intended without a build step, this is a placeholder.
+      // THE PROMPT STRICTLY REQUIRES process.env.API_KEY USAGE.
+      // This means the app is intended to be built with a tool like Vite/Webpack
+      // that replaces process.env.API_KEY.
+      // For development, you can create a .env file and use a bundler.
+      // To make it runnable in a pure static context without build for testing,
+      // one might temporarily hardcode it here or use a prompt,
+      // BUT I MUST ADHERE TO THE PROMPT.
+      // So, this script block does nothing related to API_KEY.
+      // The key is expected to be in the environment during build.
+    </script>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
+<link rel="stylesheet" href="index.css">
+<script src="index.tsx" type="module"></script>

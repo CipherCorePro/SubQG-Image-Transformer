@@ -1,0 +1,5 @@
+{
+  "name": "SubQG Image Transformer",
+  "description": "A React application that transforms images using a Subquanten-Resonanz simulation, Riemann-Analogy, and Gemini-powered image generation. Users can upload an image or generate one with AI, then apply artistic transformations based on various parameters.",
+  "requestFramePermissions": []
+}
