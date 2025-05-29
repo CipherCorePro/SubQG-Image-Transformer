@@ -365,7 +365,7 @@ const App: React.FC = () => {
         </div>
       </div>
       <footer className="text-center mt-6 py-3 border-t border-slate-700">
-        <p className="text-xs text-slate-500">SubQG Image Transformer - Powered by React, Tailwind, and Gemini API.</p>
+        <p className="text-xs text-slate-500">SubQG Image Transformer - Powered by Ralf Krümmel.</p>
       </footer>
     </div>
   );

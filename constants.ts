@@ -33,5 +33,6 @@ export const RESOLUTION_OPTIONS: ResolutionOption[] = [
 
 export const CATEGORY_LABELS_ORDERED = ["Red", "Green", "Blue", "Yellow", "Cyan", "Magenta"];
 
-export const GEMINI_IMAGE_MODEL = 'imagen-3.0-generate-002';
-export const GEMINI_TEXT_MODEL = 'gemini-2.5-flash-preview-04-17'; // Though not used in final code, good to have
+// Use 'imagen-3.0-generate-002' for dedicated image generation as per SDK guidelines.
+export const GEMINI_IMAGE_MODEL = 'imagen-3.0-generate-002'; 
+export const GEMINI_TEXT_MODEL = 'gemini-2.5-flash-preview-04-17'; // For text-based tasks if any were used.
