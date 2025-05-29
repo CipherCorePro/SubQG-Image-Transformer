@@ -1,4 +1,3 @@
-
 import { MainColor, KnotMap, ImageDimensions } from '../types';
 import { CATEGORY_LABELS_ORDERED } from '../constants';
 import { clamp } from './mathHelpers';
@@ -157,6 +156,59 @@ export const resizeKnotMap = (knotMap: KnotMap, targetWidth: number, targetHeigh
   return resizedKnotMap;
 };
 
+export const knotMapToVisualDataURL = (knotMap: KnotMap): string => {
+  if (!knotMap || knotMap.length === 0 || knotMap[0].length === 0) {
+    const placeholderCanvas = document.createElement('canvas');
+    placeholderCanvas.width = 64; // Standard small size
+    placeholderCanvas.height = 64;
+    const phCtx = placeholderCanvas.getContext('2d');
+    if (phCtx) {
+      phCtx.fillStyle = 'rgba(50,50,70,1)'; // Dark slate
+      phCtx.fillRect(0,0,64,64);
+      phCtx.font = '10px sans-serif';
+      phCtx.fillStyle = 'rgba(150,150,170,1)';
+      phCtx.textAlign = 'center';
+      phCtx.fillText('No Map', 32, 36);
+    }
+    return placeholderCanvas.toDataURL();
+  }
+
+  const height = knotMap.length;
+  const width = knotMap[0].length;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error("Cannot get canvas context for knot map visualization");
+
+  const imageData = ctx.createImageData(width, height);
+  
+  let maxKnotVal = 0;
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      if (knotMap[r][c] > maxKnotVal) maxKnotVal = knotMap[r][c];
+    }
+  }
+  if (maxKnotVal === 0) maxKnotVal = 1; // Avoid division by zero
+
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      const knotVal = knotMap[r][c];
+      // Higher knot value = lighter pixel for grayscale
+      const grayscaleValue = Math.floor((knotVal / maxKnotVal) * 255);
+      const idx = (r * width + c) * 4;
+      imageData.data[idx]     = grayscaleValue; // R
+      imageData.data[idx + 1] = grayscaleValue; // G
+      imageData.data[idx + 2] = grayscaleValue; // B
+      imageData.data[idx + 3] = 255;            // Alpha
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL();
+};
+
+
 export const processImageWithSubQG = (
   originalImageData: ImageData,
   categoryActivations: number[], 
@@ -166,7 +218,7 @@ export const processImageWithSubQG = (
   harmonyScore: number
 ): ImageData => {
   const { width: imgWidth, height: imgHeight, data: originalData } = originalImageData;
-  const newImageData = new ImageData(new Uint8ClampedArray(originalData.slice()), imgWidth, imgHeight);
+  const newImageData = new ImageData(new Uint8ClampedArray(originalData.buffer), imgWidth, imgHeight); // Use buffer for performance
   const newData = newImageData.data;
 
   // --- SubQG Wave Field Parameters (tune these for desired effect) ---
@@ -214,25 +266,22 @@ export const processImageWithSubQG = (
 
       const waveX = Math.sin(normX * waveFrequencyX * Math.PI * 2 + knotValue * knotPhaseInfluence + globalPhaseOffsetX);
       const waveY = Math.sin(normY * waveFrequencyY * Math.PI * 2 + knotValue * knotPhaseInfluence + globalPhaseOffsetY);
-      // Combine waves: (waveX+waveY)/2 gives values roughly in [-1, 1]
-      // Or multiply for more complex interference: waveX * waveY
       const fieldInfluence = (waveX + waveY) / 2.0; 
 
       // 3. Apply Global Color Mood (Harmony Score based), modulated by SubQG Wave Field
       let effectiveColorTempShift = colorTempShift * (1 + fieldInfluence * fieldColorModulationStrength);
-      let effectiveSaturationFactor = saturationFactor * (1 + fieldInfluence * fieldColorModulationStrength * 0.5); // Saturation modulation less intense
+      let effectiveSaturationFactor = saturationFactor * (1 + fieldInfluence * fieldColorModulationStrength * 0.5); 
 
-      // Apply Color Temperature Shift
-      if (effectiveColorTempShift > 0) { // Warmer
+      if (effectiveColorTempShift > 0) { 
         r = clamp(r + effectiveColorTempShift * 0.20, 0, 1); 
         g = clamp(g + effectiveColorTempShift * 0.10, 0, 1); 
         b = clamp(b - effectiveColorTempShift * 0.15, 0, 1); 
-      } else { // Cooler
+      } else { 
         r = clamp(r + effectiveColorTempShift * 0.15, 0, 1); 
+        g = clamp(g, 0,1); // No green shift for cooler
         b = clamp(b - effectiveColorTempShift * 0.20, 0, 1); 
       }
       
-      // Apply Saturation Shift
       const luma = 0.299 * r + 0.587 * g + 0.114 * b;
       r = clamp(luma + (r - luma) * effectiveSaturationFactor, 0, 1);
       g = clamp(luma + (g - luma) * effectiveSaturationFactor, 0, 1);
@@ -244,10 +293,9 @@ export const processImageWithSubQG = (
       g = clamp(g + brightnessFieldVariation, 0, 1);
       b = clamp(b + brightnessFieldVariation, 0, 1);
             
-      // Final assignment to new image data
-      newData[pixelIdx]     = clamp(r * 255, 0, 255);
-      newData[pixelIdx + 1] = clamp(g * 255, 0, 255);
-      newData[pixelIdx + 2] = clamp(b * 255, 0, 255);
+      newData[pixelIdx]     = Math.round(clamp(r * 255, 0, 255));
+      newData[pixelIdx + 1] = Math.round(clamp(g * 255, 0, 255));
+      newData[pixelIdx + 2] = Math.round(clamp(b * 255, 0, 255));
       newData[pixelIdx + 3] = originalData[pixelIdx + 3]; 
     }
   }
@@ -262,6 +310,17 @@ export const applyPostProcessing = (
     targetHeight: number
 ): Promise<ImageData> => {
   return new Promise((resolve) => {
+    const tempSrcCanvas = document.createElement('canvas');
+    tempSrcCanvas.width = imageData.width;
+    tempSrcCanvas.height = imageData.height;
+    const tempSrcCtx = tempSrcCanvas.getContext('2d');
+    if(!tempSrcCtx) {
+        resolve(imageData); // Should not happen, but fallback
+        return;
+    }
+    tempSrcCtx.putImageData(imageData, 0, 0);
+
+    // Main canvas for filtering and final output
     const canvas = document.createElement('canvas');
     canvas.width = targetWidth; 
     canvas.height = targetHeight;
@@ -270,44 +329,41 @@ export const applyPostProcessing = (
       resolve(imageData); 
       return;
     }
-
-    const tempSrcCanvas = document.createElement('canvas');
-    tempSrcCanvas.width = imageData.width;
-    tempSrcCanvas.height = imageData.height;
-    const tempSrcCtx = tempSrcCanvas.getContext('2d');
-    if(!tempSrcCtx) {
-        resolve(imageData); return;
-    }
-    tempSrcCtx.putImageData(imageData, 0, 0);
+    
+    // Draw the (potentially differently sized) imageData onto the main canvas, resizing it.
     ctx.drawImage(tempSrcCanvas, 0, 0, imageData.width, imageData.height, 0, 0, targetWidth, targetHeight);
     
-    const imageToFilter = ctx.getImageData(0, 0, targetWidth, targetHeight);
-    ctx.clearRect(0,0,targetWidth, targetHeight); 
-
+    // Now apply filter to the content of the main canvas
     let filterString = "";
     if (harmonyScore > 0.75) { 
-      filterString = "contrast(1.05) saturate(1.03)"; // Very subtle sharpen
+      filterString = "contrast(1.05) saturate(1.03)"; // Subtle enhancement
     } else if (harmonyScore < 0.25) { 
-      const blurRadius = clamp((1.0 - harmonyScore) * 1.0, 0, 3); // Max blur 3px
+      const blurRadius = clamp((1.0 - harmonyScore) * 1.5, 0, 2.5); // Max blur 2.5px
       filterString = `blur(${blurRadius.toFixed(1)}px)`;
     }
 
     if (filterString) {
-      ctx.filter = filterString;
+      // To apply filter, we need to draw the current canvas content to itself with filter applied
+      // or use a temporary canvas
+      const filteredContent = ctx.getImageData(0,0, targetWidth, targetHeight);
+      ctx.clearRect(0,0, targetWidth, targetHeight); // Clear before applying filter
+
       const tempFilterCanvas = document.createElement('canvas');
       tempFilterCanvas.width = targetWidth;
       tempFilterCanvas.height = targetHeight;
       const tempFilterCtx = tempFilterCanvas.getContext('2d');
+      
       if(tempFilterCtx){
-        tempFilterCtx.putImageData(imageToFilter, 0, 0);
-        ctx.drawImage(tempFilterCanvas, 0, 0);
+        tempFilterCtx.filter = filterString;
+        tempFilterCtx.drawImage(tempSrcCanvas, 0, 0, imageData.width, imageData.height, 0, 0, targetWidth, targetHeight); // Draw original image with filter
+        ctx.drawImage(tempFilterCanvas,0,0); // Draw filtered result back to main canvas
+        tempFilterCtx.filter = 'none'; // Reset filter
       } else {
-         ctx.putImageData(imageToFilter,0,0);
+         // Fallback if temp canvas fails, draw unfiltered but resized
+         ctx.drawImage(tempSrcCanvas, 0, 0, imageData.width, imageData.height, 0, 0, targetWidth, targetHeight);
       }
-      ctx.filter = 'none'; 
-    } else {
-      ctx.putImageData(imageToFilter, 0, 0);
     }
+    // If no filter, the canvas already holds the resized image.
     
     resolve(ctx.getImageData(0, 0, targetWidth, targetHeight));
   });
@@ -316,6 +372,10 @@ export const applyPostProcessing = (
 
 export const resizeImageData = (imageData: ImageData, newWidth: number, newHeight: number): Promise<ImageData> => {
     return new Promise((resolve, reject) => {
+        if (imageData.width === newWidth && imageData.height === newHeight) {
+            resolve(imageData);
+            return;
+        }
         const canvas = document.createElement('canvas');
         canvas.width = imageData.width;
         canvas.height = imageData.height;

@@ -1,4 +1,3 @@
-
 export interface SubQGParams {
   sim_duration: number;
   noise_factor: number;
@@ -19,6 +18,7 @@ export interface RiemannStats {
   total_projected_knots: number;
   harmony_score: number;
   internal_prescale_factor_used: number;
+  knot_map_visual_uri?: string; // For displaying the raw knot map
 }
 
 export interface TransformationParams {
